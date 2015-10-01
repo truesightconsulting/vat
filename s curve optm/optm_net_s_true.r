@@ -1,9 +1,229 @@
 #######################################################################################
 # just one optm with true optm method
 # Load in setup files
+# does two opt's, one without cstr and one with
 #######################################################################################
-#setwd("d:\\Users\\xzhou\\Desktop\\27\\")
+setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
 start=Sys.time()
+#######################################################################################
+# OPTM w/o constraint
+#######################################################################################
+print("Optimization w/o constraint")
+print("Optimization Initialization")
+suppressMessages(suppressWarnings(library(reshape2)))
+suppressMessages(suppressWarnings(library(data.table)))
+suppressMessages(suppressWarnings(library(doSNOW)))
+suppressMessages(suppressWarnings(library(nloptr)))
+max.level=1e+10 # max constrain if missing
+no.cluster=6 # no. of cores to use for large no. of curves
+
+ex.curve=fread("modelinput_curves.csv")
+ex.budget=fread("input_budget.csv")
+ex.min=fread("input_constrain_min.csv")
+ex.max=fread("input_constrain_max.csv")
+ex.aud=fread("input_audience.csv")
+ex.freq=fread("input_freq.csv")
+ex.media=fread("input_media.csv")
+ex.cpp=fread("modelinput_cpp.csv")
+ex.shell=fread("modelinput_shell.csv")
+ex.shell.rollup=fread("modelinput_shell_rollup.csv")
+ex.dupe=fread("input_dupefactor.csv")
+
+#######################################################################################
+# OPTM initialization
+#######################################################################################
+budget=ex.budget$Budget
+max.level=budget
+
+# merge all the info with curve
+curve=merge(ex.curve,ex.cpp[,c("aud_num","media_num","cpp"),with=F],
+            by=c("aud_num","media_num"),all.x=T)
+curve=merge(curve,ex.media[,c("media_num","flag_media"),with=F],
+            by=c("media_num"),all.x=T)
+curve=merge(curve,ex.freq[,c("freq_num","flag_freq"),with=F],
+            by=c("freq_num"),all.x=T)
+curve=merge(curve,ex.aud[,c("aud_num","flag_aud"),with=F],
+            by=c("aud_num"),all.x=T)
+
+# filter out non-selected curves 
+flag=curve$flag_aud+curve$flag_media+curve$flag_freq
+curve=curve[flag==3,]
+
+# create some varaibles for optm
+curve$r_grs=curve$r_net=curve$sp_next=curve$r_grs_next=rep(0,nrow(curve))
+curve$g1=curve$g/curve$cpp
+curve$inf_point1=curve$inf_point/curve$cpp
+
+# filter out non-selected shell
+index=ex.shell$shell_num %in% curve$shell_num
+shell=ex.shell[index,]
+
+# merge shell with min and max
+ex.max$max_spend=rep(max.level,nrow(ex.max))
+ex.min$min_spend=rep(0,nrow(ex.max))
+
+shell=merge(shell,ex.max[,c("shell_num","max_spend"),with=F],
+            by="shell_num",all.x=T)
+shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
+            by="shell_num",all.x=T)
+
+# calc max spend from max reach
+curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]
+max_reach_sp=log((1-(curve$max_reach/curve$k)^curve$v))/(-curve$g1)
+max_reach_sp[max_reach_sp==Inf]=max.level
+curve$max_reach_sp=max_reach_sp
+shell1=merge(shell[,c("shell_num","max_spend","min_spend"),with=F],curve[,c("shell_num","max_reach_sp","inf_point1"),with=F],by="shell_num",all.x=T)
+max_spend=pmin(shell1$max_spend,shell1$max_reach_sp)
+shell2=data.table(shell_num=shell1$shell_num,max_spend=max_spend)
+min_spend=pmax(shell1$min_spend,shell1$inf_point1)
+shell2=data.table(shell2,min_spend=min_spend,inf_point1=shell1$inf_point1,min_spend_t=shell1$min_spend)
+shell=merge(shell[,!c("max_spend","min_spend"),with=F],shell2,by="shell_num",all.x=T)
+# Ignore the turn point spend for now!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+shell$min_spend=shell$min_spend_t
+
+# merge curve with shell 
+shell$sp_current=shell$min_spend
+curve=merge(curve, shell[,c("shell_num","max_spend","min_spend","sp_current"),with=F],
+            by="shell_num",all.x=T)
+
+
+# missing curve check
+if (nrow(curve)==0){
+  stop("Error: There is no curve existing under selected dimension mix.")
+}else{
+  index=curve$k==0 | curve$g==0 | curve$v==0
+  if (sum(index)!=0) {
+    #curve[index,c("Audience","Frequency","Media"),with=F]
+    print("Warning: There is curve(s) missing. The result below drops those missing curve(s).")
+    curve=curve[!index]
+  }
+  
+  # single curve simulation
+  if (nrow(curve)==1){
+    curve$sp_current=budget
+    curve$g1=curve$g/curve$cpp
+    curve$r_grs=curve$k*((1-exp(-curve$g1*curve$sp_current))^curve$v)
+    col1=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
+    curve$grp=curve$sp_current/curve$cpp
+    output1=curve[,c("sp_current","r_grs","grp"),with=F]
+    output1=output1[1,]
+    output2=data.table(Media=c("Budget","Gross reach","Total 30s GRPs"),v1=as.vector(as.matrix(output1)))
+    setnames(output2,"v1",curve[["Media"]])
+    write.table(output2,"output_alloc_net_net.csv",sep=",")
+  }else{
+    # check some posibble errors
+    if (sum(curve$sp_current)>budget){
+      stop("Error: Total current spend is greater than total planed budget.")
+    }else if (sum(curve$sp_current>curve$max_spend) !=0) {
+      stop("Error: One or more media channel's spend is greater than its maximum constrain.")
+    }else{
+      #######################################################################################
+      # OPTM initialization
+      #######################################################################################
+      print("Optimization")
+      x0=budget*curve$k/sum(curve$k)
+      fn=function(x){
+        #x=curve$sp_current
+        curve=curve[,r_grs:=k*((1-exp(-g1*x)))**v]
+        result.random.shell=curve[,c("media_num","r_grs"),with=F]
+        # compute random scenario
+        for.ran=result.random.shell[order(media_num)]
+        n=nrow(for.ran)
+        no.media=1:n
+        r.dupe.box=rep(0,n)
+        r.dupe.box.media=matrix(0,nr=n,nc=n,dimnames=list(for.ran$media_num,1:n))
+        r.dupe.box.media[,1]=for.ran$r_grs
+        for (j in 2:n){
+          #j=2
+          combo=combn(no.media,j)
+          r.combo=matrix(for.ran$r_grs[combo],nr=j)
+          r.combo.prod=apply(r.combo,2,prod)
+          r.combo.tran=data.table(t(rbind(combo,r.combo.prod)))
+          r.combo.melt=data.table(melt(r.combo.tran,id="r.combo.prod"))
+          r.combo.meida=r.combo.melt[,list(r.prod=sum(r.combo.prod)),by=c("value")]
+          r.dupe.box.media[,j]=r.combo.meida$r.prod
+          r.dupe.box[j]=sum(r.combo.prod)
+        }
+        -(sum(for.ran$r_grs)+sum((-1)^(1:n+1)*r.dupe.box))
+      }
+      hin<- function(x) {
+        h <- numeric(1)
+        h[1] <- budget -sum(x)
+        h[2] <- sum(x)-budget
+        return(h)
+      }
+      a=curve$min_spend
+      b=curve$max_spend
+      a[a==b]=a[a==b]-0.01
+      x0=budget*curve$k/sum(curve$k)
+      x0[x0>b]=b[x0>b]
+      x0[x0<a]=a[x0<a]
+      optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
+                     nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
+      curve$sp_current=optm$par
+      
+      #######################################################################################
+      # OPTM Rollup Random
+      #######################################################################################
+      result.random.shell=curve[,c("media_num","shell_num","Media","max_spend","min_spend","sp_current","r_grs"),
+                                with=F]
+      # compute random scenario
+      for.ran=result.random.shell[order(media_num)]
+      no.media=1:nrow(curve)
+      
+      r.dupe.box=rep(0,nrow(curve))
+      r.dupe.box.media=matrix(0,nr=nrow(curve),
+                              nc=nrow(curve),
+                              dimnames=list(for.ran$media_num,
+                                            1:nrow(curve)))
+      r.dupe.box.media[,1]=for.ran$r_grs
+      
+      for (j in 2:nrow(curve)){
+        #j=2
+        combo=combn(no.media,j)
+        r.combo=matrix(for.ran$r_grs[combo],nr=j)
+        r.combo.prod=apply(r.combo,2,prod)
+        r.combo.tran=data.table(t(rbind(combo,r.combo.prod)))
+        r.combo.melt=data.table(melt(r.combo.tran,id="r.combo.prod"))
+        r.combo.meida=r.combo.melt[,list(r.prod=sum(r.combo.prod)),by=c("value")]
+        r.dupe.box.media[,j]=r.combo.meida$r.prod
+        r.dupe.box[j]=sum(r.combo.prod)
+      }
+      r_net_ran_total=sum(for.ran$r_grs)+sum((-1)^(1:nrow(curve)+1)*r.dupe.box)
+      for.ran$r_net=apply(sweep(r.dupe.box.media,MARGIN=2,(-1)^(1:nrow(curve)+1),"*"),
+                          1,sum)
+      for.ran$r_dupe=for.ran$r_grs-for.ran$r_net
+      r_dupe_ran_total=r_net_ran_total-sum(for.ran$r_net) #zx
+      
+      #######################################################################################
+      # OPTM Rollup Max
+      #######################################################################################
+      result.max.shell=curve[,c("media_num","shell_num","Media","max_spend","min_spend","sp_current","r_grs"),
+                             with=F]
+      
+      # compute max scenario
+      for.max=result.max.shell[order(-r_grs)]
+      for.max$r_net=rep(0,nrow(for.max))
+      #r_grs_lag=c(for.max$r_grs[2:length(for.max$r_grs)],0)
+      for.max$r_net[1]=for.max$r_grs[1]-for.max$r_grs[2]
+      r_net_max_total=max(for.max$r_grs)
+      r_dupe_max_total=max(for.max$r_grs[for.max$r_grs!=max(for.max$r_grs)])
+      for.max=for.max[order(media_num)]
+      for.max$r_dupe=for.max$r_grs-for.max$r_net #zx
+      
+      # save unconstraint results
+      r_dupe_ran_total1=r_dupe_ran_total
+      r_net_ran_total1=r_net_ran_total
+      r_net_max_total1=r_net_max_total
+      r_dupe_max_total1=r_dupe_max_total
+    }# error check
+  }#single curve check
+}# zero curve check
+
+#######################################################################################
+# OPTM w/ constraint
+#######################################################################################
+print("OPTM w/ constraint")
 print("Optimization Initialization")
 suppressMessages(suppressWarnings(library(reshape2)))
 suppressMessages(suppressWarnings(library(data.table)))
@@ -103,7 +323,7 @@ if (nrow(curve)==0){
     output1=output1[1,]
     output2=data.table(Media=c("Budget","Gross reach","Total 30s GRPs"),v1=as.vector(as.matrix(output1)))
     setnames(output2,"v1",curve[["Media"]])
-    write.table(output2,"output_alloc_net_net.csv")
+    write.table(output2,"output_alloc_net_net.csv",col.names = F,sep=",")
   }else{
     # check some posibble errors
     if (sum(curve$sp_current)>budget){
@@ -115,8 +335,6 @@ if (nrow(curve)==0){
       # OPTM initialization
       #######################################################################################
       print("Optimization")
-      #x0=rep(budget/nrow(curve),nrow(curve))
-      x0=budget*curve$k/sum(curve$k)
       fn=function(x){
         #x=curve$sp_current
         curve=curve[,r_grs:=k*((1-exp(-g1*x)))**v]
@@ -149,8 +367,12 @@ if (nrow(curve)==0){
       }
       a=curve$min_spend
       b=curve$max_spend
+      a[a==b]=a[a==b]-0.01
+      x0=budget*curve$k/sum(curve$k)
+      x0[x0>b]=b[x0>b]
+      x0[x0<a]=a[x0<a]
       optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
-                     nl.info = F, control = list(maxeval = 5000,ftol_abs=1,xtol_rel=1))
+                     nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
       curve$sp_current=optm$par
       
       #######################################################################################
@@ -201,6 +423,12 @@ if (nrow(curve)==0){
       r_dupe_max_total=max(for.max$r_grs[for.max$r_grs!=max(for.max$r_grs)])
       for.max=for.max[order(media_num)]
       for.max$r_dupe=for.max$r_grs-for.max$r_net #zx
+      
+      # calc final results
+      r_dupe_ran_total=max(r_dupe_ran_total,r_dupe_ran_total1)
+      r_dupe_max_total=max(r_dupe_max_total,r_dupe_max_total1)
+      r_net_max_total=min(r_net_max_total,r_net_max_total1)
+      r_net_ran_total=min(r_net_ran_total,r_net_ran_total1)
       
       # compute the final dupe factor
       for (k in 2:ncol(ex.dupe)) set(ex.dupe, j=k, value=as.numeric(ex.dupe[[k]]))
