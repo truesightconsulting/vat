@@ -37,7 +37,7 @@ for (i in seq(1,ncol(data),2)){
 if (class(nl.reg) =="try-error") {
   curve.name=as.vector(as.matrix(shell[i,1:3,with=F]))
   curve.name1=paste(curve.name,collapse=", ")
-  print(paste("Error: Curve: ",curve.name1," cannot be fitted. Please check the shape of that curve.")) 
+  print(paste("Error: Curve: ",curve.name1," cannot be fitted due to unusual shape(s). Please contact Support for help.")) 
 } else{
   shell$k=k[k!=0]
   shell$g=g[g!=0]

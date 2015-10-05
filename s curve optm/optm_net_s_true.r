@@ -154,7 +154,7 @@ if (nrow(curve)==0){
       }
       a=curve$min_spend
       b=curve$max_spend
-      a[a==b]=a[a==b]-0.01
+      b[a==b]=b[a==b]+0.01
       x0=budget*curve$k/sum(curve$k)
       x0[x0>b]=b[x0>b]
       x0[x0<a]=a[x0<a]
@@ -367,7 +367,7 @@ if (nrow(curve)==0){
       }
       a=curve$min_spend
       b=curve$max_spend
-      a[a==b]=a[a==b]-0.01
+      b[a==b]=b[a==b]+0.01
       x0=budget*curve$k/sum(curve$k)
       x0[x0>b]=b[x0>b]
       x0[x0<a]=a[x0<a]
