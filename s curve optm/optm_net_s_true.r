@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
+ setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -290,7 +290,7 @@ shell1=merge(shell[,c("shell_num","max_spend","min_spend"),with=F],curve[,c("she
 max_spend=pmin(shell1$max_spend,shell1$max_reach_sp)
 shell2=data.table(shell_num=shell1$shell_num,max_spend=max_spend)
 min_spend=pmax(shell1$min_spend,shell1$inf_point1)
-shell2=data.table(shell2,min_spend=min_spend,inf_point1=shell1$inf_point1,min_spend_t=shell1$min_spend)
+shell2=data.table(shell2,min_spend=min_spend,max_reach_sp=shell1$max_reach_sp,min_spend_t=shell1$min_spend)
 shell=merge(shell[,!c("max_spend","min_spend"),with=F],shell2,by="shell_num",all.x=T)
 # Ignore the turn point spend for now!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 shell$min_spend=shell$min_spend_t
@@ -299,7 +299,11 @@ shell$min_spend=shell$min_spend_t
 shell$sp_current=shell$min_spend
 curve=merge(curve, shell[,c("shell_num","max_spend","min_spend","sp_current"),with=F],
             by="shell_num",all.x=T)
-
+if (sum(curve$max_reach_sp<curve$min_spend) !=0) {
+  print("Warning: One or more media channel's minimum constrain is greater than maximum reach spend. The minimum spend will be replaced by the maximum reach spend")
+}
+curve$min_spend=pmin(curve$max_reach_sp,curve$min_spend)
+curve$sp_current=curve$min_spend
 
 # missing curve check
 if (nrow(curve)==0){
