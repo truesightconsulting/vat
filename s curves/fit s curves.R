@@ -1,4 +1,4 @@
-setwd("d:\\VAT Optimizer\\code\\s curves\\")
+setwd("d:\\Users\\xzhou\\Desktop\\")
 library(data.table)
 data=fread("input_curve.csv",skip=4,header=F)
 shell=fread("input_curve.csv",nrows=4,header=F)

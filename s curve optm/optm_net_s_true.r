@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
- setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
+setwd("C:\\Users\\876036-mzhou\\Desktop\\opt_0_10_06_2015_06_54_04_05183\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -560,7 +560,7 @@ if (nrow(curve)==0){
       names(for.output)=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
       for.output.t=data.frame(t(for.output))
       names(for.output.t)=for.output$Media
-      for.output.t=data.frame(for.output.t[dupe.final[,"Media"]],for.output.t[c("All other duplicated reach","Total")])
+      for.output.t=data.frame(for.output.t[curve$Media],for.output.t[c("All other duplicated reach","Total")])
       
       write.table(for.output.t,"output_alloc_net_net.csv",col.names = F,sep=",")
       write.csv(dupe.final,"output_dupe_net_net.csv",row.names=F)
