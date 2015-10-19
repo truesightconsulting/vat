@@ -30,7 +30,8 @@ for (i in seq(1,ncol(data),2)){
     g[i]=coef(nl.reg)[2]
     v[i]=coef(nl.reg)[3]
     max_reach[i]=min(max(dataset$d),coef(nl.reg)[1])
-    mape[i]=mean(abs(resid(nl.reg))[-1]/dataset$d[-1])
+    mape.temp=abs(resid(nl.reg))[-1]/dataset$d[-1]
+    mape[i]=mean(mape.temp[mape.temp!=Inf])
   }
 }
 
