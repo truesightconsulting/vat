@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-setwd("C:\\Users\\876036-mzhou\\Desktop\\vat\\")
+#setwd("C:\\Users\\876036-mzhou\\Desktop\\vat\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -606,14 +606,14 @@ if (nrow(curve)==0){
       # for output
       for.output=data.frame(final[,c("Media","sp_adj","allo","r_grs","r_net_adj","grp"),with=F])
       # several adjustments for two channel scenario
-      r_n=for.output$r_grs
-      if(sum(r_n!=0)==2){
-        index=dupe.final[,-1]!=0
-        index[is.na(index)]=F
-        r_dupe_adj_total=as.numeric(dupe.final[,-1][(!is.na(dupe.final[,-1]))&index])
-        r_net_adj_total=sum(for.output$r_grs)-r_dupe_adj_total
-        for.output$r_net_adj[r_n!=0]=for.output$r_grs[r_n!=0]-r_dupe_adj_total
-      }
+#       r_n=for.output$r_grs
+#       if(sum(r_n!=0)==2){
+#         index=dupe.final[,-1]!=0
+#         index[is.na(index)]=F
+#         r_dupe_adj_total=as.numeric(dupe.final[,-1][(!is.na(dupe.final[,-1]))&index])
+#         r_net_adj_total=sum(for.output$r_grs)-r_dupe_adj_total
+#         for.output$r_net_adj[r_n!=0]=for.output$r_grs[r_n!=0]-r_dupe_adj_total
+#       }
       
       x=c("Total",apply(for.output[,-1],2,sum))
       x[names(for.output)=="r_net_adj"]=r_net_adj_total

@@ -25,7 +25,13 @@ for (i in seq(1,ncol(data),2)){
   control1 <- nls.control(maxiter= 10000, minFactor= 1e-30, warnOnly= FALSE,tol=1e-05)
   nl.reg <- try(nls(d ~ k * ((1-exp(-g * id))**v),data=dataset,start= list(k=k.start,g=g.start,v=v.start),
                     control= control1),silent=T)
-  if (class(nl.reg)=="try-error") break else {
+  if (class(nl.reg)=="try-error") {
+    k[i]=NA
+    g[i]=NA
+    v[i]=NA
+    max_reach[i]=NA
+    mape[i]=NA
+  } else {
     k[i]=coef(nl.reg)[1]
     g[i]=coef(nl.reg)[2]
     v[i]=coef(nl.reg)[3]
@@ -35,17 +41,14 @@ for (i in seq(1,ncol(data),2)){
   }
 }
 
-if (class(nl.reg) =="try-error") {
-  curve.name=as.vector(as.matrix(shell[i,1:3,with=F]))
-  curve.name1=paste(curve.name,collapse=", ")
-  print(paste("Error: Curve: ",curve.name1," cannot be fitted due to unusual shape(s). Please contact Support for help.")) 
-} else{
-  shell$k=k[k!=0]
-  shell$g=g[g!=0]
-  shell$v=v[v!=0] 
-  shell[,inf_point:=log(v)/g]
-  shell$inf_point[shell$inf_point<0]=0
-  shell$max_reach=max_reach[max_reach!=0]
-  shell$mape=mape[mape!=0]
-  write.csv(shell,"output.csv",row.names=F)
-}
+
+shell$k=k[k!=0]
+shell$g=g[g!=0]
+shell$v=v[v!=0] 
+shell[,inf_point:=log(v)/g]
+shell$inf_point[shell$inf_point<0]=0
+shell$max_reach=max_reach[max_reach!=0]
+shell$mape=mape[mape!=0]
+if(sum(is.na(shell$g))!=0) print("There are curves which cannot be fitted due to unusual shapes. Please contact Support for help.")
+write.csv(shell,"output.csv",row.names=F)
+
