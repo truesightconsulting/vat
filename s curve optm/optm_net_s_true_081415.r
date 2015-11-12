@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-#setwd("C:\\Users\\876036-mzhou\\Desktop\\vat\\")
+#setwd("d:\\Users\\xzhou\\Desktop\\opt_0_11_12_2015_08_10_28_81695\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -79,6 +79,7 @@ curve=curve[flag==3,]
 # create some varaibles for optm
 curve$r_grs=curve$r_net=curve$sp_next=curve$r_grs_next=rep(0,nrow(curve))
 curve$g1=curve$g/curve$cpp
+curve$g1.old=curve$g.old/curve$cpp
 curve$inf_point1=curve$inf_point/curve$cpp
 
 # filter out non-selected shell
@@ -96,7 +97,7 @@ shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
 
 # calc max spend from max reach
 curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]
-max_reach_sp=log((1-(curve$max_reach/curve$k)^curve$v))/(-curve$g1)
+max_reach_sp=log((1-(curve$max_reach/curve$k)^(1/curve$v)))/(-curve$g1.old)
 max_reach_sp[max_reach_sp==Inf]=max.level
 curve$max_reach_sp=max_reach_sp
 shell1=merge(shell[,c("shell_num","max_spend","min_spend"),with=F],curve[,c("shell_num","max_reach_sp","inf_point1"),with=F],by="shell_num",all.x=T)
@@ -321,6 +322,7 @@ curve=curve[flag==3,]
 # create some varaibles for optm
 curve$r_grs=curve$r_net=curve$sp_next=curve$r_grs_next=rep(0,nrow(curve))
 curve$g1=curve$g/curve$cpp
+curve$g1.old=curve$g.old/curve$cpp
 curve$inf_point1=curve$inf_point/curve$cpp
 
 # filter out non-selected shell
@@ -338,7 +340,7 @@ shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
 
 # calc max spend from max reach
 curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]
-max_reach_sp=log((1-(curve$max_reach/curve$k)^curve$v))/(-curve$g1)
+max_reach_sp=log((1-(curve$max_reach/curve$k)^(1/curve$v)))/(-curve$g1.old)
 max_reach_sp[max_reach_sp==Inf]=max.level
 curve$max_reach_sp=max_reach_sp
 shell1=merge(shell[,c("shell_num","max_spend","min_spend"),with=F],curve[,c("shell_num","max_reach_sp","inf_point1"),with=F],by="shell_num",all.x=T)
