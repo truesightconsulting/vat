@@ -10,34 +10,42 @@ shell=shell[,seq(2,ncol(shell),by=2),with=F]
 shell=data.table(t(shell))
 setnames(shell,names(shell),c("Audience","Media","Frequency","cpp"))
 
-g=rep(0,ncol(data))
-v=rep(0,ncol(data))
-k=rep(0,ncol(data))
-max_reach=rep(0,ncol(data))
-mape=rep(0,ncol(data))
+g=rep(c(NA,0),ncol(data)/2)
+v=rep(c(NA,0),ncol(data)/2)
+k=rep(c(NA,0),ncol(data)/2)
+max_reach=rep(c(NA,0),ncol(data)/2)
+mape=rep(c(NA,0),ncol(data)/2)
 
-for (i in seq(1,ncol(data),2)){
-  print(i)
-  d=data[[i+1]]
-  id=data[[i]]
-  dataset=data.frame(d=d[!is.na(d)],id=id[!is.na(id)])
-  k.start <- max(dataset$d)
-  control1 <- nls.control(maxiter= 10000, minFactor= 1e-30, warnOnly= FALSE,tol=1e-05)
-  nl.reg <- try(nls(d ~ k * ((1-exp(-g * id))**v),data=dataset,start= list(k=k.start,g=g.start,v=v.start),
-                    control= control1),silent=T)
-  if (class(nl.reg)=="try-error") {
-    k[i]=NA
-    g[i]=NA
-    v[i]=NA
-    max_reach[i]=NA
-    mape[i]=NA
+
+iter=0
+while(iter<4) {
+  iter=iter+1
+  if (iter %% 2==0) g.start=g.start/10 else g.start=g.start*10
+  
+  if (sum(is.na(g))==0) {
+    print("Curves Fitting is complete.")
+    break
   } else {
-    k[i]=coef(nl.reg)[1]
-    g[i]=coef(nl.reg)[2]
-    v[i]=coef(nl.reg)[3]
-    max_reach[i]=min(max(dataset$d),coef(nl.reg)[1])
-    mape.temp=abs(resid(nl.reg))[-1]/dataset$d[-1]
-    mape[i]=mean(mape.temp[mape.temp!=Inf])
+    for (i in seq(1,ncol(data),2)){
+      tryCatch({
+        print(i)
+        d=data[[i+1]]
+        id=data[[i]]
+        dataset=data.frame(d=d[!is.na(d)],id=id[!is.na(id)])
+        k.start <- max(dataset$d)
+        control1 <- nls.control(maxiter= 10000, minFactor= 1e-30, warnOnly= FALSE,tol=1e-05)
+        nl.reg <- try(nls(d ~ k * ((1-exp(-g * id))**v),data=dataset,start= list(k=k.start,g=g.start,v=v.start),
+                          control= control1),silent=T)
+        k[i]=coef(nl.reg)[1]
+        g[i]=coef(nl.reg)[2]
+        v[i]=coef(nl.reg)[3]
+        max_reach[i]=min(max(dataset$d),coef(nl.reg)[1])
+        mape.temp=abs(resid(nl.reg))[-1]/dataset$d[-1]
+        mape[i]=mean(mape.temp[mape.temp!=Inf])
+      },error=function(){
+        print(i)
+      },finally=next)
+    }
   }
 }
 
