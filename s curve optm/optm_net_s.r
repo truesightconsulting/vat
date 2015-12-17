@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
+#setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
