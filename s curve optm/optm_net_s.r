@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-#setwd("d:\\Users\\xzhou\\Desktop\\opt_0_11_12_2015_08_10_28_81695\\")
+setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -128,9 +128,9 @@ if (nrow(curve)==0){
   
   # single curve simulation
   if (nrow(curve)==1){
-    curve$sp_current=budget
+    curve$sp_current=min(curve$max_spend,budget)
     curve$g1=curve$g/curve$cpp
-    curve$r_grs=curve$k*((1-exp(-curve$g1*curve$sp_current))^curve$v)
+    curve$r_grs=curve$k*((1-exp(-curve$g1.old*curve$sp_current))^curve$v)
     col1=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
     curve$grp=curve$sp_current/curve$cpp
     output1=curve[,c("sp_current","r_grs","grp"),with=F]
@@ -375,9 +375,9 @@ if (nrow(curve)==0){
   
   # single curve simulation
   if (nrow(curve)==1){
-    curve$sp_current=budget
+    curve$sp_current=min(curve$max_spend,budget)
     curve$g1=curve$g/curve$cpp
-    curve$r_grs=curve$k*((1-exp(-curve$g1*curve$sp_current))^curve$v)
+    curve$r_grs=curve$k*((1-exp(-curve$g1.old*curve$sp_current))^curve$v)
     col1=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
     curve$grp=curve$sp_current/curve$cpp
     output1=curve[,c("sp_current","r_grs","grp"),with=F]
