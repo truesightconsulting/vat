@@ -149,47 +149,51 @@ if (nrow(curve)==0){
       # OPTM initialization
       #######################################################################################
       print("Optimization")
-      x0=budget*curve$k/sum(curve$k)
-      fn=function(x){
-        #x=curve$sp_current
-        curve=curve[,r_grs:=k*((1-exp(-g1*x)))**v]
-        result.random.shell=curve[,c("media_num","r_grs"),with=F]
-        # compute random scenario
-        for.ran=result.random.shell[order(media_num)]
-        n=nrow(for.ran)
-        no.media=1:n
-        r.dupe.box=rep(0,n)
-        r.dupe.box.media=matrix(0,nr=n,nc=n,dimnames=list(for.ran$media_num,1:n))
-        r.dupe.box.media[,1]=for.ran$r_grs
-        for (j in 2:n){
-          #j=2
-          combo=combn(no.media,j)
-          r.combo=matrix(for.ran$r_grs[combo],nr=j)
-          r.combo.prod=apply(r.combo,2,prod)
-          r.combo.tran=data.table(t(rbind(combo,r.combo.prod)))
-          r.combo.melt=data.table(melt(r.combo.tran,id="r.combo.prod"))
-          r.combo.meida=r.combo.melt[,list(r.prod=sum(r.combo.prod)),by=c("value")]
-          r.dupe.box.media[,j]=r.combo.meida$r.prod
-          r.dupe.box[j]=sum(r.combo.prod)
+      print("Optimization")
+      if (sum(curve$sp_current)==budget){
+        curve$sp_current=curve$min_spend
+      }else{
+        fn=function(x){
+          #x=curve$sp_current
+          curve=curve[,r_grs:=k*((1-exp(-g1*x)))**v]
+          result.random.shell=curve[,c("media_num","r_grs"),with=F]
+          # compute random scenario
+          for.ran=result.random.shell[order(media_num)]
+          n=nrow(for.ran)
+          no.media=1:n
+          r.dupe.box=rep(0,n)
+          r.dupe.box.media=matrix(0,nr=n,nc=n,dimnames=list(for.ran$media_num,1:n))
+          r.dupe.box.media[,1]=for.ran$r_grs
+          for (j in 2:n){
+            #j=2
+            combo=combn(no.media,j)
+            r.combo=matrix(for.ran$r_grs[combo],nr=j)
+            r.combo.prod=apply(r.combo,2,prod)
+            r.combo.tran=data.table(t(rbind(combo,r.combo.prod)))
+            r.combo.melt=data.table(melt(r.combo.tran,id="r.combo.prod"))
+            r.combo.meida=r.combo.melt[,list(r.prod=sum(r.combo.prod)),by=c("value")]
+            r.dupe.box.media[,j]=r.combo.meida$r.prod
+            r.dupe.box[j]=sum(r.combo.prod)
+          }
+          -(sum(for.ran$r_grs)+sum((-1)^(1:n+1)*r.dupe.box))
         }
-        -(sum(for.ran$r_grs)+sum((-1)^(1:n+1)*r.dupe.box))
+        hin<- function(x) {
+          h <- numeric(1)
+          h[1] <- budget -sum(x)
+          h[2] <- sum(x)-budget
+          return(h)
+        }
+        a=curve$min_spend
+        b=curve$max_spend
+        b[a==b]=b[a==b]+0.00001
+        temp=curve[,list(r_grs=k*((1-exp(-g1*budget)))**v)][[1]]
+        x0=budget*temp/sum(temp)
+        x0[x0>b]=b[x0>b]
+        x0[x0<a]=a[x0<a]
+        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
+                       nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
+        curve$sp_current=optm$par
       }
-      hin<- function(x) {
-        h <- numeric(1)
-        h[1] <- budget -sum(x)
-        h[2] <- sum(x)-budget
-        return(h)
-      }
-      a=curve$min_spend
-      b=curve$max_spend
-      b[a==b]=b[a==b]+0.01
-      temp=curve[,list(r_grs=k*((1-exp(-g1*budget)))**v)][[1]]
-      x0=budget*temp/sum(temp)
-      x0[x0>b]=b[x0>b]
-      x0[x0<a]=a[x0<a]
-      optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
-                     nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
-      curve$sp_current=optm$par
       
       #######################################################################################
       # OPTM Rollup Random
@@ -396,46 +400,51 @@ if (nrow(curve)==0){
       # OPTM initialization
       #######################################################################################
       print("Optimization")
-      fn=function(x){
-        #x=curve$sp_current
-        curve=curve[,r_grs:=k*((1-exp(-g1*x)))**v]
-        result.random.shell=curve[,c("media_num","r_grs"),with=F]
-        # compute random scenario
-        for.ran=result.random.shell[order(media_num)]
-        n=nrow(for.ran)
-        no.media=1:n
-        r.dupe.box=rep(0,n)
-        r.dupe.box.media=matrix(0,nr=n,nc=n,dimnames=list(for.ran$media_num,1:n))
-        r.dupe.box.media[,1]=for.ran$r_grs
-        for (j in 2:n){
-          #j=2
-          combo=combn(no.media,j)
-          r.combo=matrix(for.ran$r_grs[combo],nr=j)
-          r.combo.prod=apply(r.combo,2,prod)
-          r.combo.tran=data.table(t(rbind(combo,r.combo.prod)))
-          r.combo.melt=data.table(melt(r.combo.tran,id="r.combo.prod"))
-          r.combo.meida=r.combo.melt[,list(r.prod=sum(r.combo.prod)),by=c("value")]
-          r.dupe.box.media[,j]=r.combo.meida$r.prod
-          r.dupe.box[j]=sum(r.combo.prod)
+      if (sum(curve$sp_current)==budget){
+        curve$sp_current=curve$min_spend
+      }else{
+        fn=function(x){
+          #x=curve$sp_current
+          curve=curve[,r_grs:=k*((1-exp(-g1*x)))**v]
+          result.random.shell=curve[,c("media_num","r_grs"),with=F]
+          # compute random scenario
+          for.ran=result.random.shell[order(media_num)]
+          n=nrow(for.ran)
+          no.media=1:n
+          r.dupe.box=rep(0,n)
+          r.dupe.box.media=matrix(0,nr=n,nc=n,dimnames=list(for.ran$media_num,1:n))
+          r.dupe.box.media[,1]=for.ran$r_grs
+          for (j in 2:n){
+            #j=2
+            combo=combn(no.media,j)
+            r.combo=matrix(for.ran$r_grs[combo],nr=j)
+            r.combo.prod=apply(r.combo,2,prod)
+            r.combo.tran=data.table(t(rbind(combo,r.combo.prod)))
+            r.combo.melt=data.table(melt(r.combo.tran,id="r.combo.prod"))
+            r.combo.meida=r.combo.melt[,list(r.prod=sum(r.combo.prod)),by=c("value")]
+            r.dupe.box.media[,j]=r.combo.meida$r.prod
+            r.dupe.box[j]=sum(r.combo.prod)
+          }
+          -(sum(for.ran$r_grs)+sum((-1)^(1:n+1)*r.dupe.box))
         }
-        -(sum(for.ran$r_grs)+sum((-1)^(1:n+1)*r.dupe.box))
+        hin<- function(x) {
+          h <- numeric(1)
+          h[1] <- budget -sum(x)
+          h[2] <- sum(x)-budget
+          return(h)
+        }
+        a=curve$min_spend
+        b=curve$max_spend
+        b[a==b]=b[a==b]+0.00001
+        temp=curve[,list(r_grs=k*((1-exp(-g1*budget)))**v)][[1]]
+        x0=budget*temp/sum(temp)
+        x0[x0>b]=b[x0>b]
+        x0[x0<a]=a[x0<a]
+        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
+                       nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
+        curve$sp_current=optm$par
       }
-      hin<- function(x) {
-        h <- numeric(1)
-        h[1] <- budget -sum(x)
-        h[2] <- sum(x)-budget
-        return(h)
-      }
-      a=curve$min_spend
-      b=curve$max_spend
-      b[a==b]=b[a==b]+0.01
-      temp=curve[,list(r_grs=k*((1-exp(-g1*budget)))**v)][[1]]
-      x0=budget*temp/sum(temp)
-      x0[x0>b]=b[x0>b]
-      x0[x0<a]=a[x0<a]
-      optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
-                     nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
-      curve$sp_current=optm$par
+
       
       #######################################################################################
       # OPTM Rollup Random
