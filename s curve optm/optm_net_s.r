@@ -152,6 +152,7 @@ if (nrow(curve)==0){
       print("Optimization")
       if (sum(curve$sp_current)==budget){
         curve$sp_current=curve$min_spend
+        curve$r_grs=curve[,list(r_grs=k*((1-exp(-g1.old*sp_current)))**v)][[1]]
       }else{
         fn=function(x){
           #x=curve$sp_current
@@ -193,6 +194,7 @@ if (nrow(curve)==0){
         optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
                        nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
         curve$sp_current=optm$par
+        curve$r_grs=curve[,list(r_grs=k*((1-exp(-g1.old*sp_current)))**v)][[1]]
       }
       
       #######################################################################################
@@ -402,6 +404,7 @@ if (nrow(curve)==0){
       print("Optimization")
       if (sum(curve$sp_current)==budget){
         curve$sp_current=curve$min_spend
+        curve$r_grs=curve[,list(r_grs=k*((1-exp(-g1.old*sp_current)))**v)][[1]]
       }else{
         fn=function(x){
           #x=curve$sp_current
@@ -443,6 +446,7 @@ if (nrow(curve)==0){
         optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,
                        nl.info = F, control = list(maxeval = 10000,ftol_abs=1e-6,xtol_rel=1e-6))
         curve$sp_current=optm$par
+        curve$r_grs=curve[,list(r_grs=k*((1-exp(-g1.old*sp_current)))**v)][[1]]
       }
 
       
