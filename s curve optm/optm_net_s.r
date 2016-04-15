@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-#setwd("d:\\Users\\xzhou\\Desktop\\vat\\")
+setwd("c:\\Users\\XinZhou\\Documents\\GitHub\\vat\\s curve optm\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -28,6 +28,15 @@ ex.cpp=fread("modelinput_cpp.csv")
 ex.shell=fread("modelinput_shell.csv")
 ex.shell.rollup=fread("modelinput_shell_rollup.csv")
 ex.dupe=fread("input_dupefactor.csv")
+
+#######################################################################################
+# curve tweaking based on population
+#######################################################################################
+ex.curve$inchannel_p[is.na(ex.curve$inchannel_p)]=1
+ex.curve$uni_p[is.na(ex.curve$uni_p)]=1
+ex.curve$k.old=ex.curve$k
+ex.curve$k=ex.curve$k.old*ex.curve$inchannel_p/ex.curve$uni_p
+ex.curve$max_reach=ex.curve$max_reach*ex.curve$inchannel_p/ex.curve$uni_p
 
 #######################################################################################
 # curve tweaking based on dupe factor
@@ -96,7 +105,7 @@ shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
             by="shell_num",all.x=T)
 
 # calc max spend from max reach
-curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]
+curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]*0.99999
 max_reach_sp=log((1-(curve$max_reach/curve$k)^(1/curve$v)))/(-curve$g1.old)
 max_reach_sp[max_reach_sp==Inf]=max.level
 curve$max_reach_sp=max_reach_sp
@@ -280,6 +289,15 @@ ex.shell.rollup=fread("modelinput_shell_rollup.csv")
 ex.dupe=fread("input_dupefactor.csv")
 
 #######################################################################################
+# curve tweaking based on population
+#######################################################################################
+ex.curve$inchannel_p[is.na(ex.curve$inchannel_p)]=1
+ex.curve$uni_p[is.na(ex.curve$uni_p)]=1
+ex.curve$k.old=ex.curve$k
+ex.curve$k=ex.curve$k.old*ex.curve$inchannel_p/ex.curve$uni_p
+ex.curve$max_reach=ex.curve$max_reach*ex.curve$inchannel_p/ex.curve$uni_p
+
+#######################################################################################
 # curve tweaking based on dupe factor
 #######################################################################################
 # compute the final dupe factor
@@ -345,7 +363,7 @@ shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
             by="shell_num",all.x=T)
 
 # calc max spend from max reach
-curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]
+curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]*0.9999
 max_reach_sp=log((1-(curve$max_reach/curve$k)^(1/curve$v)))/(-curve$g1.old)
 max_reach_sp[max_reach_sp==Inf]=max.level
 curve$max_reach_sp=max_reach_sp
@@ -618,8 +636,10 @@ if (nrow(curve)==0){
       curve.temp=curve.temp[,r_grs:=k*((1-exp(-g.old1*sp_current))**v)]
       final=final[,!"r_grs",with=F]
       final=merge(final,curve.temp[,c("media_num","r_grs"),with=F],by="media_num")
+      final <- merge(final,curve[,c("media_num","inchannel_p","uni_p"),with=F],by="media_num")
+      final <- final[,':='(r_grs_inchannel=r_grs*uni_p/inchannel_p,grp_u=grp*inchannel_p/uni_p)]
       # for output
-      for.output=data.frame(final[,c("Media","sp_adj","allo","r_grs","r_net_adj","grp"),with=F])
+      for.output=data.frame(final[,c("Media","sp_adj","allo","r_grs","r_grs_inchannel","r_net_adj","grp_u","grp"),with=F])
       # several adjustments for two channel scenario
 #       r_n=for.output$r_grs
 #       if(sum(r_n!=0)==2){
@@ -634,7 +654,7 @@ if (nrow(curve)==0){
       x[names(for.output)=="r_net_adj"]=r_net_adj_total
       for.output=rbind(for.output,c("All other duplicated reach",c("","","",r_dupe_adj_total,"")))
       for.output=rbind(for.output,x)
-      names(for.output)=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
+      names(for.output)=c("Media","Budget","Allocation","Gross Reach (Total Universe)","Gross Reach (Channel Universe)","Net reach","Total 30s GRPs (Total Universe)","Total 30s GRPs (Channel Universe)")
       for.output.t=data.frame(t(for.output))
       names(for.output.t)=for.output$Media
       for.output.t=data.frame(for.output.t[curve$Media],for.output.t[c("All other duplicated reach","Total")])
