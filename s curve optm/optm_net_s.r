@@ -85,6 +85,10 @@ curve=merge(curve,ex.aud[,c("aud_num","flag_aud"),with=F],
 flag=curve$flag_aud+curve$flag_media+curve$flag_freq
 curve=curve[flag==3,]
 
+# convert cpm to in-channel cpp
+curve$cpm=curve$cpp
+curve[,cpp:=cpm*inchannel_p/1e8]
+
 # create some varaibles for optm
 curve$r_grs=curve$r_net=curve$sp_next=curve$r_grs_next=rep(0,nrow(curve))
 curve$g1=curve$g/curve$cpp
@@ -342,6 +346,10 @@ curve=merge(curve,ex.aud[,c("aud_num","flag_aud"),with=F],
 # filter out non-selected curves 
 flag=curve$flag_aud+curve$flag_media+curve$flag_freq
 curve=curve[flag==3,]
+
+# convert cpm to in-channel cpp
+curve$cpm=curve$cpp
+curve[,cpp:=cpm*inchannel_p/1e8]
 
 # create some varaibles for optm
 curve$r_grs=curve$r_net=curve$sp_next=curve$r_grs_next=rep(0,nrow(curve))
