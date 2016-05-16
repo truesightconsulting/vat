@@ -660,7 +660,7 @@ if (nrow(curve)==0){
       
       x=c("Total",apply(for.output[,-1],2,sum))
       x[names(for.output)=="r_net_adj"]=r_net_adj_total
-      for.output=rbind(for.output,c("All other duplicated reach",c("","","",r_dupe_adj_total,"")))
+      for.output=rbind(for.output,c("All other duplicated reach",c("","","",r_dupe_adj_total,"","","")))
       for.output=rbind(for.output,x)
       names(for.output)=c("Media","Budget","Allocation","Gross Reach (Total Universe)","Gross Reach (Channel Universe)","Net reach","Total 30s GRPs (Total Universe)","Total 30s GRPs (Channel Universe)")
       for.output.t=data.frame(t(for.output))
