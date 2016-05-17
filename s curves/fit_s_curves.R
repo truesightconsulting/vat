@@ -1,4 +1,4 @@
-#setwd("d:\\Users\\xzhou\\Desktop\\")
+#setwd("c:\\Users\\XinZhou\\Desktop\\")
 library(data.table)
 data=fread("input_curve.csv",skip=4,header=F)
 shell=fread("input_curve.csv",nrows=4,header=F)
@@ -36,12 +36,14 @@ while(iter<4) {
         control1 <- nls.control(maxiter= 10000, minFactor= 1e-30, warnOnly= FALSE,tol=1e-05)
         nl.reg <- try(nls(d ~ k * ((1-exp(-g * id))**v),data=dataset,start= list(k=k.start,g=g.start,v=v.start),
                           control= control1),silent=T)
-        k[i]=coef(nl.reg)[1]
-        g[i]=coef(nl.reg)[2]
-        v[i]=coef(nl.reg)[3]
-        max_reach[i]=min(max(dataset$d),coef(nl.reg)[1])
-        mape.temp=abs(resid(nl.reg))[-1]/dataset$d[-1]
-        mape[i]=mean(mape.temp[mape.temp!=Inf])
+        if (class(nl.reg)!= "try-error"){
+          k[i]=coef(nl.reg)[1]
+          g[i]=coef(nl.reg)[2]
+          v[i]=coef(nl.reg)[3]
+          max_reach[i]=min(max(dataset$d),coef(nl.reg)[1])
+          mape.temp=abs(resid(nl.reg))[-1]/dataset$d[-1]
+          mape[i]=mean(mape.temp[mape.temp!=Inf])
+        }
       },error=function(){
         print(i)
       },finally=next)
