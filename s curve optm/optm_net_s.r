@@ -146,9 +146,11 @@ if (nrow(curve)==0){
     curve$r_grs=curve$k*((1-exp(-curve$g1.old*curve$sp_current))^curve$v)
     col1=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
     curve$grp=curve$sp_current/curve$cpp
-    output1=curve[,c("sp_current","r_grs","grp"),with=F]
+    curve[,':='(r_grs_inchannel=r_grs*uni_p/inchannel_p,grp_u=grp*inchannel_p/uni_p)]
+    output1=curve[,c("sp_current","r_grs","r_grs_inchannel","grp_u","grp"),with=F]
     output1=output1[1,]
-    output2=data.table(Media=c("Budget","Gross reach","Total 30s GRPs"),v1=as.vector(as.matrix(output1)))
+    output2=data.table(Media=c("Budget","Gross Reach (Total Universe)","Gross Reach (Channel Universe)",
+                               "Total 30s GRPs (Total Universe)","Total 30s GRPs (Channel Universe)"),v1=as.vector(as.matrix(output1)))
     setnames(output2,"v1",curve[["Media"]])
     write.table(output2,"output_alloc_net_net.csv",row.names=F,sep=",")
   }else{
@@ -412,9 +414,11 @@ if (nrow(curve)==0){
     curve$r_grs=curve$k*((1-exp(-curve$g1.old*curve$sp_current))^curve$v)
     col1=c("Media","Budget","Allocation","Gross reach","Net reach","Total 30s GRPs")
     curve$grp=curve$sp_current/curve$cpp
-    output1=curve[,c("sp_current","r_grs","grp"),with=F]
+    curve[,':='(r_grs_inchannel=r_grs*uni_p/inchannel_p,grp_u=grp*inchannel_p/uni_p)]
+    output1=curve[,c("sp_current","r_grs","r_grs_inchannel","grp_u","grp"),with=F]
     output1=output1[1,]
-    output2=data.table(Media=c("Budget","Gross reach","Total 30s GRPs"),v1=as.vector(as.matrix(output1)))
+    output2=data.table(Media=c("Budget","Gross Reach (Total Universe)","Gross Reach (Channel Universe)",
+                               "Total 30s GRPs (Total Universe)","Total 30s GRPs (Channel Universe)"),v1=as.vector(as.matrix(output1)))
     setnames(output2,"v1",curve[["Media"]])
     write.table(output2,"output_alloc_net_net.csv",row.names=F,sep=",")
   }else{
