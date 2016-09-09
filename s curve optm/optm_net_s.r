@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-setwd("c:\\Users\\XinZhou\\Documents\\GitHub\\vat\\s curve optm\\")
+#setwd("c:\\Users\\XinZhou\\Desktop\\vat\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -109,9 +109,10 @@ shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
             by="shell_num",all.x=T)
 
 # calc max spend from max reach
-curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]*0.99999
+#curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]*0.99999
 max_reach_sp=log((1-(curve$max_reach/curve$k)^(1/curve$v)))/(-curve$g1.old)
 max_reach_sp[max_reach_sp==Inf]=max.level
+max_reach_sp[is.na(max_reach_sp)]=max.level
 curve$max_reach_sp=max_reach_sp
 shell1=merge(shell[,c("shell_num","max_spend","min_spend"),with=F],curve[,c("shell_num","max_reach_sp","inf_point1"),with=F],by="shell_num",all.x=T)
 max_spend=pmin(shell1$max_spend,shell1$max_reach_sp)
@@ -152,6 +153,7 @@ if (nrow(curve)==0){
     output2=data.table(Media=c("Budget","Gross Reach (Total Universe)","Gross Reach (Channel Universe)",
                                "Total 30s GRPs (Total Universe)","Total 30s GRPs (Channel Universe)"),v1=as.vector(as.matrix(output1)))
     setnames(output2,"v1",curve[["Media"]])
+    output2=output2[-c(3,5)]
     write.table(output2,"output_alloc_net_net.csv",row.names=F,sep=",")
   }else{
     # check some posibble errors
@@ -373,15 +375,16 @@ shell=merge(shell,ex.min[,c("shell_num","min_spend"),with=F],
             by="shell_num",all.x=T)
 
 # calc max spend from max reach
-curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]*0.9999
+#curve$max_reach[is.na(curve$max_reach)]=curve$k[is.na(curve$max_reach)]*0.99999
 max_reach_sp=log((1-(curve$max_reach/curve$k)^(1/curve$v)))/(-curve$g1.old)
 max_reach_sp[max_reach_sp==Inf]=max.level
+max_reach_sp[is.na(max_reach_sp)]=max.level
 curve$max_reach_sp=max_reach_sp
 shell1=merge(shell[,c("shell_num","max_spend","min_spend"),with=F],curve[,c("shell_num","max_reach_sp","inf_point1"),with=F],by="shell_num",all.x=T)
 max_spend=pmin(shell1$max_spend,shell1$max_reach_sp)
 shell2=data.table(shell_num=shell1$shell_num,max_spend=max_spend)
 min_spend=pmax(shell1$min_spend,shell1$inf_point1)
-shell2=data.table(shell2,min_spend=min_spend,max_reach_sp=shell1$max_reach_sp,min_spend_t=shell1$min_spend)
+shell2=data.table(shell2,min_spend=min_spend,inf_point1=shell1$inf_point1,min_spend_t=shell1$min_spend)
 shell=merge(shell[,!c("max_spend","min_spend"),with=F],shell2,by="shell_num",all.x=T)
 # Ignore the turn point spend for now!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 shell$min_spend=shell$min_spend_t
@@ -420,6 +423,7 @@ if (nrow(curve)==0){
     output2=data.table(Media=c("Budget","Gross Reach (Total Universe)","Gross Reach (Channel Universe)",
                                "Total 30s GRPs (Total Universe)","Total 30s GRPs (Channel Universe)"),v1=as.vector(as.matrix(output1)))
     setnames(output2,"v1",curve[["Media"]])
+    output2=output2[-c(3,5)]
     write.table(output2,"output_alloc_net_net.csv",row.names=F,sep=",")
   }else{
     # check some posibble errors
