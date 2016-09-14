@@ -3,7 +3,7 @@
 # Load in setup files
 # does two opt's, one without cstr and one with
 #######################################################################################
-#setwd("c:\\Users\\XinZhou\\Desktop\\vat1\\")
+#setwd("c:\\Users\\XinZhou\\Desktop\\vat\\")
 start=Sys.time()
 #######################################################################################
 # OPTM w/o constraint
@@ -201,6 +201,8 @@ if (nrow(curve)==0){
           h[2] <- sum(x)-budget
           return(h)
         }
+        curve.order=curve$shell_num
+        
         curve.cstr=curve[min_spend==max_spend]
         budget.current=sum(curve.cstr$sp_current)
         
@@ -212,10 +214,11 @@ if (nrow(curve)==0){
         x0=(budget-budget.current)*temp/sum(temp)
         x0[x0>b]=b[x0>b]
         x0[x0<a]=a[x0<a]
-        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,nl.info = F, control = list(maxeval = 10000,xtol_rel=1e-6))
+        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,nl.info = F, control = list(maxeval = 10000,xtol_rel=1e-6,ftol_abs=1e-6))
         curve$sp_current=optm$par
         
         curve=rbind(curve,curve.cstr)
+        curve=curve[match(curve.order,curve$shell_num),]
         
         curve$r_grs=curve[,list(r_grs=k*((1-exp(-g1.old*sp_current)))**v)][[1]]
       }
@@ -476,6 +479,7 @@ if (nrow(curve)==0){
           h[2] <- sum(x)-(budget-budget.current)
           return(h)
         }
+        curve.order=curve$shell_num
         
         curve.cstr=curve[min_spend==max_spend]
         budget.current=sum(curve.cstr$sp_current)
@@ -488,10 +492,11 @@ if (nrow(curve)==0){
         x0=(budget-budget.current)*temp/sum(temp)
         x0[x0>b]=b[x0>b]
         x0[x0<a]=a[x0<a]
-        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,nl.info = F, control = list(maxeval = 10000,xtol_rel=1e-6))
+        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,nl.info = F, control = list(maxeval = 10000,xtol_rel=1e-6,ftol_abs=1e-6))
         curve$sp_current=optm$par
         
         curve=rbind(curve,curve.cstr)
+        curve=curve[match(curve.order,curve$shell_num),]
         
         curve$r_grs=curve[,list(r_grs=k*((1-exp(-g1.old*sp_current)))**v)][[1]]
       }
