@@ -485,15 +485,19 @@ if (nrow(curve)==0){
         budget.current=sum(curve.cstr$sp_current)
         
         curve=curve[min_spend!=max_spend]
-        a=curve$min_spend
-        b=curve$max_spend
-        #b[a==b]=b[a==b]+0.00001
-        temp=curve[,list(r_grs=k*((1-exp(-g1*budget)))**v)][[1]]
-        x0=(budget-budget.current)*temp/sum(temp)
-        x0[x0>b]=b[x0>b]
-        x0[x0<a]=a[x0<a]
-        optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,nl.info = F, control = list(maxeval = 10000,xtol_rel=1e-6,ftol_abs=1e-6))
-        curve$sp_current=optm$par
+        if (nrow(curve)==1){
+          curve$sp_current=budget.current
+        }else{
+          a=curve$min_spend
+          b=curve$max_spend
+          #b[a==b]=b[a==b]+0.00001
+          temp=curve[,list(r_grs=k*((1-exp(-g1*budget)))**v)][[1]]
+          x0=(budget-budget.current)*temp/sum(temp)
+          x0[x0>b]=b[x0>b]
+          x0[x0<a]=a[x0<a]
+          optm <- cobyla(x0, fn, hin = hin, lower=a, upper=b,nl.info = F, control = list(maxeval = 10000,xtol_rel=1e-6,ftol_abs=1e-6))
+          curve$sp_current=optm$par
+        }
         
         curve=rbind(curve,curve.cstr)
         curve=curve[match(curve.order,curve$shell_num),]
